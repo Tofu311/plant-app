@@ -11,7 +11,7 @@ import { supabase } from "@/lib/supabaseClient";
 export default function Index() {
   const [selectedPlant, setSelectedPlant] = useState("Monstera");
   const [waterLevel, setWaterLevel] = useState(78); // percentage
-  const [soilMoisture, setSoilMoisture] = useState(42); // percentage
+  const [isSoilMoist, setIsSoilMoist] = useState(true);
   const [lightIntensity, setLightIntensity] = useState(65); // percentagexs
   const [lightMode, setLightMode] = useState("Auto"); // Auto, On, Off
   const [isWatering, setIsWatering] = useState(false);
@@ -25,7 +25,7 @@ export default function Index() {
       try {
         const { data, error } = await supabase
           .from("sensor_data")
-          .select("water_level, light_level")
+          .select("water_level, light_level, is_moist")
           .eq("id", 1)
           .single();
 
@@ -40,6 +40,11 @@ export default function Index() {
         // Set light level
         if (data?.light_level !== undefined) {
           setLightIntensity(data.light_level);
+        }
+
+        // Set soil moisture
+        if (data?.is_moist !== undefined) {
+          setIsSoilMoist(data.is_moist);
         }
       } catch (err) {
         console.error("Unexpected error:", err);
@@ -218,19 +223,6 @@ export default function Index() {
         </View>
 
         <View style={styles.statCard}>
-          <Text style={styles.statTitle}>Soil Moisture</Text>
-          <View style={styles.progressBarContainer}>
-            <View
-              style={[
-                styles.progressBar,
-                { width: `${soilMoisture}%`, backgroundColor: "#8D6E63" },
-              ]}
-            />
-          </View>
-          <Text style={styles.statValue}>{soilMoisture}%</Text>
-        </View>
-
-        <View style={styles.statCard}>
           <Text style={styles.statTitle}>Light Intensity</Text>
           <View style={styles.progressBarContainer}>
             <View
@@ -241,6 +233,18 @@ export default function Index() {
             />
           </View>
           <Text style={styles.statValue}>{lightIntensity}%</Text>
+        </View>
+
+        <View style={styles.statCard}>
+          <Text style={styles.statTitle}>Soil Condition</Text>
+          <Text style={[styles.statValue, { marginBottom: 8 }]}>
+            {isSoilMoist ? "Moist 🌱" : "Dry 🌵"}
+          </Text>
+          {!isSoilMoist && (
+            <Text style={{ color: "#F44336", fontWeight: "500" }}>
+              Soil is dry. Consider watering your plant!
+            </Text>
+          )}
         </View>
       </View>
 
