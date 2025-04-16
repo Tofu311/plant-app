@@ -1,5 +1,6 @@
 import { Text, View, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
 import React, { useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
 
 export default function Index() {
   const [selectedPlant, setSelectedPlant] = useState("Monstera");
@@ -9,6 +10,7 @@ export default function Index() {
   const [temperature, setTemperature] = useState(23.5); // celsius
   const [humidity, setHumidity] = useState(60); // percentage
   const [lightMode, setLightMode] = useState("Auto"); // Auto, On, Off
+  const [isWatering, setIsWatering] = useState(false);
 
   // Plant options
   const plants = ["Mint", "Snake Plant", "Pothos", "Fiddle Leaf Fig", "Peace Lily"];
@@ -21,10 +23,29 @@ export default function Index() {
     setLightMode(modes[nextIndex]);
   };
 
-  // Simulate water pump activation
-  const activateWaterPump = () => {
-    // In a real app, this would trigger the actual water pump
-    setSoilMoisture(Math.min(soilMoisture + 10, 100));
+  const activateWaterPump = async () => {
+    const nextState = !isWatering;
+  
+    try {
+      const { error } = await supabase
+        .from('sensor_data')
+        .update({ is_button_pump: nextState })
+        .eq('id', 1);
+  
+      if (error) {
+        console.error('Failed to update pump state:', error.message);
+      } else {
+        console.log(`Pump ${nextState ? 'activated' : 'deactivated'} successfully`);
+        setIsWatering(nextState);
+        
+        // Update soil moisture slider (not pulling from sensor data)
+        if (nextState) {
+          setSoilMoisture((prev) => Math.min(prev + 10, 100));
+        }
+      }
+    } catch (err) {
+      console.error('Unexpected error:', err);
+    }
   };
 
   // Simulate light intensity change
@@ -191,7 +212,9 @@ export default function Index() {
             style={styles.controlButton}
             onPress={activateWaterPump}
           >
-            <Text style={styles.controlButtonText}>Water Now</Text>
+            <Text style={styles.controlButtonText}>
+              {isWatering ? "Stop Watering": "Water Now"}
+            </Text>
           </TouchableOpacity>
         </View>
 
