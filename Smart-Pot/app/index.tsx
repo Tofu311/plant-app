@@ -11,29 +11,36 @@ export default function Index() {
   const [isWatering, setIsWatering] = useState(false);
 
   const normalizeWaterLevel = (value: number) => Math.round((value / 1023) * 100);
-  // Grab water level data from database
+
+  // Grab sensor data from database
   useEffect(() => {
-    const fetchWaterLevel = async () => {
+    const fetchSensorData = async () => {
       try{
         const { data, error} = await supabase
         .from("sensor_data")
-        .select("water_level")
+        .select("water_level, light_level")
         .eq("id", 1)
         .single();
 
+        // Set water level
         if (error) {
-          console.error("Failed to fetch water level:", error.message);
+          console.error("Failed to fetch sensor data:", error.message);
         } else if (data?.water_level !== undefined) {
           const percent = normalizeWaterLevel(data.water_level);
           setWaterLevel(percent);
+        }
+
+        // Set light level
+        if(data?.light_level !== undefined) {
+          setLightIntensity(data.light_level);
         }
       } catch (err) {
         console.error("Unexpected error:", err);
       }
     };
 
-    fetchWaterLevel();
-    const interval = setInterval(fetchWaterLevel, 10000); // updates every 10 seconds
+    fetchSensorData();
+    const interval = setInterval(fetchSensorData, 10000); // updates every 10 seconds
     return () => clearInterval(interval);
   }, []);
 
