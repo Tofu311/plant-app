@@ -9,7 +9,6 @@ import React, { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
 export default function Index() {
-  const [selectedPlant, setSelectedPlant] = useState("Monstera");
   const [waterLevel, setWaterLevel] = useState(78); // percentage
   const [isSoilMoist, setIsSoilMoist] = useState(true);
   const [lightIntensity, setLightIntensity] = useState(65); // percentagexs
@@ -81,15 +80,6 @@ export default function Index() {
     return () => clearInterval(interval);
   }, []);
 
-  // Plant options
-  const plants = [
-    "Mint",
-    "Snake Plant",
-    "Pothos",
-    "Fiddle Leaf Fig",
-    "Peace Lily",
-  ];
-
   // Toggle light mode
   const toggleLightMode = () => {
     const modes = ["Auto", "On", "Off"];
@@ -125,7 +115,7 @@ export default function Index() {
   };
 
   // Render custom slider component
-  const Slider = ({ value, onValueChange, disabled }) => {
+  const Slider = ({ value, onValueChange, disabled, lightMode }) => {
     const [sliderValue, setSliderValue] = useState(value);
 
     const handlePress = (event) => {
@@ -134,10 +124,15 @@ export default function Index() {
       // Get position relative to the slider
       const { locationX } = event.nativeEvent;
       const sliderWidth = 300; // This should match the width in styles
-      const newValue = Math.max(
+      let newValue = Math.max(
         0,
         Math.min(100, Math.round((locationX / sliderWidth) * 100))
       );
+
+      // Snap to nearest 5% if the light mode is "On"
+      if (lightMode === "On") {
+        newValue = Math.round(newValue / 5) * 5;
+      }
 
       setSliderValue(newValue);
       onValueChange(newValue);
@@ -179,32 +174,6 @@ export default function Index() {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Plant Buddy</Text>
         <Text style={styles.subTitle}>Smart Plant Controller</Text>
-      </View>
-
-      {/* Plant selection */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Selected Plant</Text>
-        <View style={styles.plantSelector}>
-          {plants.map((plant) => (
-            <TouchableOpacity
-              key={plant}
-              style={[
-                styles.plantOption,
-                selectedPlant === plant && styles.selectedPlantOption,
-              ]}
-              onPress={() => setSelectedPlant(plant)}
-            >
-              <Text
-                style={[
-                  styles.plantText,
-                  selectedPlant === plant && styles.selectedPlantText,
-                ]}
-              >
-                {plant}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
       </View>
 
       {/* Status cards */}
@@ -288,19 +257,10 @@ export default function Index() {
               value={lightIntensity}
               onValueChange={adjustLightIntensity}
               disabled={lightMode === "Off"}
+              lightMode={lightMode}
             />
           </View>
         )}
-      </View>
-
-      {/* Plant care tips */}
-      <View style={styles.tipsContainer}>
-        <Text style={styles.tipsTitle}>Care Tips for {selectedPlant}</Text>
-        <Text style={styles.tipText}>
-          • Water once a week, allow soil to dry between waterings{"\n"}•
-          Prefers bright, indirect light{"\n"}• Keep humidity above 50% for
-          optimal growth
-        </Text>
       </View>
     </ScrollView>
   );
