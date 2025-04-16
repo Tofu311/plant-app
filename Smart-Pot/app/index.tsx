@@ -6,8 +6,7 @@ export default function Index() {
   const [selectedPlant, setSelectedPlant] = useState("Monstera");
   const [waterLevel, setWaterLevel] = useState(78); // percentage
   const [soilMoisture, setSoilMoisture] = useState(42); // percentage
-  const [lightIntensity, setLightIntensity] = useState(65); // percentage
-  const [temperature, setTemperature] = useState(23.5); // celsius
+  const [lightIntensity, setLightIntensity] = useState(65); // percentagexs
   const [humidity, setHumidity] = useState(60); // percentage
   const [lightMode, setLightMode] = useState("Auto"); // Auto, On, Off
   const [isWatering, setIsWatering] = useState(false);
@@ -164,22 +163,6 @@ export default function Index() {
             />
           </View>
           <Text style={styles.statValue}>{lightIntensity}%</Text>
-        </View>
-
-        <View style={styles.statCard}>
-          <Text style={styles.statTitle}>Temperature</Text>
-          <View style={styles.progressBarContainer}>
-            <View
-              style={[
-                styles.progressBar, 
-                { 
-                  width: `${(temperature / 40) * 100}%`, 
-                  backgroundColor: "#F44336"
-                }
-              ]}
-            />
-          </View>
-          <Text style={styles.statValue}>{temperature}°C</Text>
         </View>
 
         <View style={styles.statCard}>
