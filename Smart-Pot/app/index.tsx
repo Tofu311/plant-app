@@ -1,5 +1,5 @@
 import { Text, View, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
 export default function Index() {
@@ -9,6 +9,33 @@ export default function Index() {
   const [lightIntensity, setLightIntensity] = useState(65); // percentagexs
   const [lightMode, setLightMode] = useState("Auto"); // Auto, On, Off
   const [isWatering, setIsWatering] = useState(false);
+
+  const normalizeWaterLevel = (value: number) => Math.round((value / 1023) * 100);
+  // Grab water level data from database
+  useEffect(() => {
+    const fetchWaterLevel = async () => {
+      try{
+        const { data, error} = await supabase
+        .from("sensor_data")
+        .select("water_level")
+        .eq("id", 1)
+        .single();
+
+        if (error) {
+          console.error("Failed to fetch water level:", error.message);
+        } else if (data?.water_level !== undefined) {
+          const percent = normalizeWaterLevel(data.water_level);
+          setWaterLevel(percent);
+        }
+      } catch (err) {
+        console.error("Unexpected error:", err);
+      }
+    };
+
+    fetchWaterLevel();
+    const interval = setInterval(fetchWaterLevel, 10000); // updates every 10 seconds
+    return () => clearInterval(interval);
+  }, []);
 
   // Plant options
   const plants = ["Mint", "Snake Plant", "Pothos", "Fiddle Leaf Fig", "Peace Lily"];
