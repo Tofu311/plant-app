@@ -13,7 +13,7 @@ export default function Index() {
   const [waterLevel, setWaterLevel] = useState(78); // percentage
   const [isSoilMoist, setIsSoilMoist] = useState(true);
   const [lightIntensity, setLightIntensity] = useState(65); // percentagexs
-  const [lightMode, setLightMode] = useState("Auto"); // Auto, On, Off
+  const [lightMode, setLightMode] = useState<"Auto" | "Manual">("Auto"); // Auto, Manual
   const [isWatering, setIsWatering] = useState(false);
   const [greeting, setGreeting] = useState("");
   const [plantAge, setPlantAge] = useState<number | null>(null);
@@ -22,7 +22,7 @@ export default function Index() {
     value: number;
     onValueChange: (val: number) => void;
     disabled: boolean;
-    lightMode: string;
+    lightMode: "Auto" | "Manual";
   };
 
   const normalizeWaterLevel = (value: number) =>
@@ -113,11 +113,22 @@ export default function Index() {
   }, []);
 
   // Toggle light mode
-  const toggleLightMode = () => {
-    const modes = ["Auto", "On", "Off"];
-    const currentIndex = modes.indexOf(lightMode);
-    const nextIndex = (currentIndex + 1) % modes.length;
-    setLightMode(modes[nextIndex]);
+  const toggleLightMode = async () => {
+    const nextMode = lightMode == "Auto" ? "Manual" : "Auto";
+    setLightMode(nextMode);
+
+    try {
+      const { error } = await supabase
+        .from("sensor_data")
+        .update({ is_auto: nextMode === "Auto" })
+        .eq("id", 1);
+
+      if (error) {
+        console.error("Failed to update is_auto mode:", error.message);
+      }
+    } catch (e) {
+      console.error("Unexpected error updating lighting mode:", e);
+    }
   };
 
   const activateWaterPump = async () => {
@@ -140,21 +151,22 @@ export default function Index() {
     }
   };
 
-  // Simulate light intensity change
   const adjustLightIntensity = async (value: number) => {
     setLightIntensity(value);
 
-    try {
-      const { error } = await supabase
-        .from("sensor_data")
-        .update({ light_level: value })
-        .eq("id", 1);
+    if (lightMode === "Manual") {
+      try {
+        const { error } = await supabase
+          .from("sensor_data")
+          .update({ light_level: value })
+          .eq("id", 1);
 
-      if (error) {
-        console.error("Failed to update light level:", error.message);
+        if (error) {
+          console.error("Failed to update light level:", error.message);
+        }
+      } catch (e) {
+        console.error("Unexpected error updating light level:", e);
       }
-    } catch (e) {
-      console.error("Unexpected error updating light level:", e);
     }
   };
 
@@ -179,7 +191,7 @@ export default function Index() {
       );
 
       // Snap to nearest 5% if the light mode is "On"
-      if (lightMode === "On") {
+      if (lightMode === "Manual") {
         newValue = Math.round(newValue / 5) * 5;
       }
 
@@ -292,7 +304,12 @@ export default function Index() {
             <View
               style={[
                 styles.lightIndicator,
-                { backgroundColor: lightMode === "On" ? "#FFC107" : "#E0E0E0" },
+                {
+                  backgroundColor:
+                    lightMode === "Manual" && lightIntensity > 0
+                      ? "#FFC107"
+                      : "#E0E0E0",
+                },
               ]}
             />
             <Text style={styles.controlButtonText}>Light: {lightMode}</Text>
@@ -313,13 +330,13 @@ export default function Index() {
         </View>
 
         {/* Light intensity slider (visible when not in Auto mode) */}
-        {lightMode !== "Auto" && (
+        {lightMode === "Manual" && (
           <View style={styles.sliderSection}>
             <Text style={styles.sliderTitle}>Adjust Light Intensity</Text>
             <Slider
               value={lightIntensity}
               onValueChange={adjustLightIntensity}
-              disabled={lightMode === "Off"}
+              disabled={false}
               lightMode={lightMode}
             />
           </View>
