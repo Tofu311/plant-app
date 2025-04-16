@@ -1,4 +1,10 @@
-import { Text, View, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
+import {
+  Text,
+  View,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+} from "react-native";
 import React, { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -10,17 +16,18 @@ export default function Index() {
   const [lightMode, setLightMode] = useState("Auto"); // Auto, On, Off
   const [isWatering, setIsWatering] = useState(false);
 
-  const normalizeWaterLevel = (value: number) => Math.round((value / 1023) * 100);
+  const normalizeWaterLevel = (value: number) =>
+    Math.round((value / 1023) * 100);
 
   // Grab sensor data from database
   useEffect(() => {
     const fetchSensorData = async () => {
-      try{
-        const { data, error} = await supabase
-        .from("sensor_data")
-        .select("water_level, light_level")
-        .eq("id", 1)
-        .single();
+      try {
+        const { data, error } = await supabase
+          .from("sensor_data")
+          .select("water_level, light_level")
+          .eq("id", 1)
+          .single();
 
         // Set water level
         if (error) {
@@ -31,7 +38,7 @@ export default function Index() {
         }
 
         // Set light level
-        if(data?.light_level !== undefined) {
+        if (data?.light_level !== undefined) {
           setLightIntensity(data.light_level);
         }
       } catch (err) {
@@ -44,8 +51,39 @@ export default function Index() {
     return () => clearInterval(interval);
   }, []);
 
+  // "Water Now" button logic
+  useEffect(() => {
+    const checkPumpStatus = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("sensor_data")
+          .select("is_button_pump")
+          .eq("id", 1)
+          .single();
+
+        if (error) {
+          console.error("Failed to fetch pump status:", error.message);
+        } else {
+          setIsWatering(data?.is_button_pump ?? false);
+        }
+      } catch (err) {
+        console.error("Unexpected error:", err);
+      }
+    };
+
+    checkPumpStatus();
+    const interval = setInterval(checkPumpStatus, 3000); // check every 3 seconds
+    return () => clearInterval(interval);
+  }, []);
+
   // Plant options
-  const plants = ["Mint", "Snake Plant", "Pothos", "Fiddle Leaf Fig", "Peace Lily"];
+  const plants = [
+    "Mint",
+    "Snake Plant",
+    "Pothos",
+    "Fiddle Leaf Fig",
+    "Peace Lily",
+  ];
 
   // Toggle light mode
   const toggleLightMode = () => {
@@ -56,27 +94,22 @@ export default function Index() {
   };
 
   const activateWaterPump = async () => {
-    const nextState = !isWatering;
-  
+    if (isWatering) return; // Prevents re-clicking the button while active
+
     try {
       const { error } = await supabase
-        .from('sensor_data')
-        .update({ is_button_pump: nextState })
-        .eq('id', 1);
-  
+        .from("sensor_data")
+        .update({ is_button_pump: true })
+        .eq("id", 1);
+
       if (error) {
-        console.error('Failed to update pump state:', error.message);
+        console.error("Failed to update pump state:", error.message);
       } else {
-        console.log(`Pump ${nextState ? 'activated' : 'deactivated'} successfully`);
-        setIsWatering(nextState);
-        
-        // Update soil moisture slider (not pulling from sensor data)
-        if (nextState) {
-          setSoilMoisture((prev) => Math.min(prev + 10, 100));
-        }
+        console.log("Pump activation requested");
+        setIsWatering(true);
       }
     } catch (err) {
-      console.error('Unexpected error:', err);
+      console.error("Unexpected error:", err);
     }
   };
 
@@ -89,39 +122,42 @@ export default function Index() {
   // Render custom slider component
   const Slider = ({ value, onValueChange, disabled }) => {
     const [sliderValue, setSliderValue] = useState(value);
-    
+
     const handlePress = (event) => {
       if (disabled) return;
-      
+
       // Get position relative to the slider
       const { locationX } = event.nativeEvent;
       const sliderWidth = 300; // This should match the width in styles
-      const newValue = Math.max(0, Math.min(100, Math.round((locationX / sliderWidth) * 100)));
-      
+      const newValue = Math.max(
+        0,
+        Math.min(100, Math.round((locationX / sliderWidth) * 100))
+      );
+
       setSliderValue(newValue);
       onValueChange(newValue);
     };
 
     return (
       <View style={styles.sliderContainer}>
-        <View 
+        <View
           style={[styles.sliderTrack, disabled && styles.sliderDisabled]}
           onTouchStart={handlePress}
           onTouchMove={handlePress}
         >
-          <View 
+          <View
             style={[
-              styles.sliderFill, 
+              styles.sliderFill,
               { width: `${sliderValue}%` },
-              disabled && styles.sliderFillDisabled
-            ]} 
+              disabled && styles.sliderFillDisabled,
+            ]}
           />
-          <View 
+          <View
             style={[
-              styles.sliderThumb, 
+              styles.sliderThumb,
               { left: `${sliderValue}%` },
-              disabled && styles.sliderThumbDisabled
-            ]} 
+              disabled && styles.sliderThumbDisabled,
+            ]}
           />
         </View>
         <View style={styles.sliderLabels}>
@@ -172,7 +208,10 @@ export default function Index() {
           <Text style={styles.statTitle}>Water Level</Text>
           <View style={styles.progressBarContainer}>
             <View
-              style={[styles.progressBar, { width: `${waterLevel}%`, backgroundColor: "#2196F3" }]}
+              style={[
+                styles.progressBar,
+                { width: `${waterLevel}%`, backgroundColor: "#2196F3" },
+              ]}
             />
           </View>
           <Text style={styles.statValue}>{waterLevel}%</Text>
@@ -182,7 +221,10 @@ export default function Index() {
           <Text style={styles.statTitle}>Soil Moisture</Text>
           <View style={styles.progressBarContainer}>
             <View
-              style={[styles.progressBar, { width: `${soilMoisture}%`, backgroundColor: "#8D6E63" }]}
+              style={[
+                styles.progressBar,
+                { width: `${soilMoisture}%`, backgroundColor: "#8D6E63" },
+              ]}
             />
           </View>
           <Text style={styles.statValue}>{soilMoisture}%</Text>
@@ -192,7 +234,10 @@ export default function Index() {
           <Text style={styles.statTitle}>Light Intensity</Text>
           <View style={styles.progressBarContainer}>
             <View
-              style={[styles.progressBar, { width: `${lightIntensity}%`, backgroundColor: "#FFC107" }]}
+              style={[
+                styles.progressBar,
+                { width: `${lightIntensity}%`, backgroundColor: "#FFC107" },
+              ]}
             />
           </View>
           <Text style={styles.statValue}>{lightIntensity}%</Text>
@@ -202,24 +247,31 @@ export default function Index() {
       {/* Controls */}
       <View style={styles.controlsSection}>
         <Text style={styles.sectionTitle}>Controls</Text>
-        
+
         <View style={styles.controlsRow}>
-          <TouchableOpacity 
-            style={styles.controlButton} 
+          <TouchableOpacity
+            style={styles.controlButton}
             onPress={toggleLightMode}
           >
-            <View style={[styles.lightIndicator, 
-              { backgroundColor: lightMode === "On" ? "#FFC107" : "#E0E0E0" }]} 
+            <View
+              style={[
+                styles.lightIndicator,
+                { backgroundColor: lightMode === "On" ? "#FFC107" : "#E0E0E0" },
+              ]}
             />
             <Text style={styles.controlButtonText}>Light: {lightMode}</Text>
           </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.controlButton}
+
+          <TouchableOpacity
+            style={[
+              styles.controlButton,
+              isWatering && { backgroundColor: "#BDBDBD" },
+            ]}
             onPress={activateWaterPump}
+            disabled={isWatering}
           >
             <Text style={styles.controlButtonText}>
-              {isWatering ? "Stop Watering": "Water Now"}
+              {isWatering ? "Watering..." : "Water Now"}
             </Text>
           </TouchableOpacity>
         </View>
@@ -228,9 +280,9 @@ export default function Index() {
         {lightMode !== "Auto" && (
           <View style={styles.sliderSection}>
             <Text style={styles.sliderTitle}>Adjust Light Intensity</Text>
-            <Slider 
-              value={lightIntensity} 
-              onValueChange={adjustLightIntensity} 
+            <Slider
+              value={lightIntensity}
+              onValueChange={adjustLightIntensity}
               disabled={lightMode === "Off"}
             />
           </View>
@@ -241,9 +293,9 @@ export default function Index() {
       <View style={styles.tipsContainer}>
         <Text style={styles.tipsTitle}>Care Tips for {selectedPlant}</Text>
         <Text style={styles.tipText}>
-          • Water once a week, allow soil to dry between waterings{"\n"}
-          • Prefers bright, indirect light{"\n"}
-          • Keep humidity above 50% for optimal growth
+          • Water once a week, allow soil to dry between waterings{"\n"}•
+          Prefers bright, indirect light{"\n"}• Keep humidity above 50% for
+          optimal growth
         </Text>
       </View>
     </ScrollView>
