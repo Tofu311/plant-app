@@ -14,6 +14,7 @@ export default function Index() {
   const [lightIntensity, setLightIntensity] = useState(65); // percentagexs
   const [lightMode, setLightMode] = useState("Auto"); // Auto, On, Off
   const [isWatering, setIsWatering] = useState(false);
+  const [greeting, setGreeting] = useState("");
 
   const normalizeWaterLevel = (value: number) =>
     Math.round((value / 1023) * 100);
@@ -37,9 +38,9 @@ export default function Index() {
         }
 
         // Set light level
-        if (data?.light_level !== undefined) {
+        if (data?.light_level !== undefined && lightMode === "Auto") {
           setLightIntensity(data.light_level);
-        }
+        }        
 
         // Set soil moisture
         if (data?.is_moist !== undefined) {
@@ -80,6 +81,19 @@ export default function Index() {
     return () => clearInterval(interval);
   }, []);
 
+  // Greeting logic
+  useEffect(() => {
+    const hour = new Date().getHours();
+
+    if (hour < 12) {
+      setGreeting("☀️ Good morning");
+    } else if (hour < 18) {
+      setGreeting("🌤️ Good afternoon");
+    } else {
+      setGreeting("🌙 Good evening");
+    }
+  }, []);
+
   // Toggle light mode
   const toggleLightMode = () => {
     const modes = ["Auto", "On", "Off"];
@@ -109,9 +123,21 @@ export default function Index() {
   };
 
   // Simulate light intensity change
-  const adjustLightIntensity = (value) => {
-    // This would normally connect to the actual hardware
+  const adjustLightIntensity = async (value) => {
     setLightIntensity(value);
+
+    try {
+      const { error } = await supabase
+        .from('sensor_data')
+        .update({light_level: value})
+        .eq('id', 1);
+
+      if (error) {
+        console.error("Failed to update light level:", error.message);
+      }
+    } catch (e) {
+      console.error("Unexpected error updating light level:", e);
+    }
   };
 
   // Render custom slider component
@@ -174,6 +200,10 @@ export default function Index() {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Plant Buddy</Text>
         <Text style={styles.subTitle}>Smart Plant Controller</Text>
+      </View>
+
+      <View style={styles.greetingBanner}>
+        <Text style={styles.greetingText}>{greeting}</Text>
       </View>
 
       {/* Status cards */}
@@ -478,4 +508,15 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     fontSize: 14,
   },
+  greetingBanner: {
+    paddingVertical: 20,
+    paddingHorizontal: 30,
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  greetingText: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#666",
+  },  
 });
