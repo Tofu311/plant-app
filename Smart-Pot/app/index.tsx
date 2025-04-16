@@ -16,6 +16,7 @@ export default function Index() {
   const [lightMode, setLightMode] = useState("Auto"); // Auto, On, Off
   const [isWatering, setIsWatering] = useState(false);
   const [greeting, setGreeting] = useState("");
+  const [plantAge, setPlantAge] = useState<number | null>(null);
 
   type SliderProps = {
     value: number;
@@ -33,7 +34,7 @@ export default function Index() {
       try {
         const { data, error } = await supabase
           .from("sensor_data")
-          .select("water_level, light_level, is_moist")
+          .select("water_level, light_level, is_moist, created_at")
           .eq("id", 1)
           .single();
 
@@ -48,11 +49,20 @@ export default function Index() {
         // Set light level
         if (data?.light_level !== undefined && lightMode === "Auto") {
           setLightIntensity(data.light_level);
-        }        
+        }
 
         // Set soil moisture
         if (data?.is_moist !== undefined) {
           setIsSoilMoist(data.is_moist);
+        }
+
+        // Determine plant age
+        if (data?.created_at) {
+          const createdDate = new Date(data.created_at);
+          const today = new Date();
+          const diffTime = Math.abs(today.getTime() - createdDate.getTime());
+          const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+          setPlantAge(diffDays);
         }
       } catch (err) {
         console.error("Unexpected error:", err);
@@ -136,9 +146,9 @@ export default function Index() {
 
     try {
       const { error } = await supabase
-        .from('sensor_data')
-        .update({light_level: value})
-        .eq('id', 1);
+        .from("sensor_data")
+        .update({ light_level: value })
+        .eq("id", 1);
 
       if (error) {
         console.error("Failed to update light level:", error.message);
@@ -149,7 +159,12 @@ export default function Index() {
   };
 
   // Render custom slider component
-  const Slider:React.FC<SliderProps> = ({ value, onValueChange, disabled, lightMode }) => {
+  const Slider: React.FC<SliderProps> = ({
+    value,
+    onValueChange,
+    disabled,
+    lightMode,
+  }) => {
     const [sliderValue, setSliderValue] = useState(value);
 
     const handlePress = (event: GestureResponderEvent) => {
@@ -204,10 +219,7 @@ export default function Index() {
   };
 
   return (
-    <ScrollView 
-      style={styles.container}
-      bounces={false}
-    >
+    <ScrollView style={styles.container} bounces={false}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Plant Buddy</Text>
         <Text style={styles.subTitle}>Smart Plant Controller</Text>
@@ -216,6 +228,16 @@ export default function Index() {
       <View style={styles.greetingBanner}>
         <Text style={styles.greetingText}>{greeting}</Text>
       </View>
+
+      {plantAge !== null && (
+        <View style={styles.ageBanner}>
+          <Text style={styles.ageText}>
+            🌿 Your plant has been growing for{" "}
+            <Text style={{ fontWeight: "bold" }}>{plantAge}</Text> day
+            {plantAge === 1 ? "" : "s"}!
+          </Text>
+        </View>
+      )}
 
       {/* Status cards */}
       <View style={styles.statsContainer}>
@@ -523,11 +545,26 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
     paddingHorizontal: 30,
     alignItems: "center",
-    marginBottom: 10,
+    marginBottom: 2,
   },
   greetingText: {
     fontSize: 22,
     fontWeight: "700",
     color: "#666",
-  },  
+  },
+  ageBanner: {
+    marginTop: 20,
+    backgroundColor: "#E0F2F1",
+    padding: 15,
+    borderRadius: 12,
+    alignItems: "center",
+    marginHorizontal: 15,
+    marginBottom: 30,
+    borderLeftWidth: 5,
+    borderLeftColor: "#4DB6AC",
+  },
+  ageText: {
+    fontSize: 16,
+    color: "#004D40",
+  },
 });
