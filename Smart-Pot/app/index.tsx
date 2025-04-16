@@ -7,7 +7,6 @@ export default function Index() {
   const [waterLevel, setWaterLevel] = useState(78); // percentage
   const [soilMoisture, setSoilMoisture] = useState(42); // percentage
   const [lightIntensity, setLightIntensity] = useState(65); // percentagexs
-  const [humidity, setHumidity] = useState(60); // percentage
   const [lightMode, setLightMode] = useState("Auto"); // Auto, On, Off
   const [isWatering, setIsWatering] = useState(false);
 
@@ -163,16 +162,6 @@ export default function Index() {
             />
           </View>
           <Text style={styles.statValue}>{lightIntensity}%</Text>
-        </View>
-
-        <View style={styles.statCard}>
-          <Text style={styles.statTitle}>Humidity</Text>
-          <View style={styles.progressBarContainer}>
-            <View
-              style={[styles.progressBar, { width: `${humidity}%`, backgroundColor: "#26A69A" }]}
-            />
-          </View>
-          <Text style={styles.statValue}>{humidity}%</Text>
         </View>
       </View>
 
