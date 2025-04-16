@@ -4,6 +4,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
+  GestureResponderEvent,
 } from "react-native";
 import React, { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
@@ -15,6 +16,13 @@ export default function Index() {
   const [lightMode, setLightMode] = useState("Auto"); // Auto, On, Off
   const [isWatering, setIsWatering] = useState(false);
   const [greeting, setGreeting] = useState("");
+
+  type SliderProps = {
+    value: number;
+    onValueChange: (val: number) => void;
+    disabled: boolean;
+    lightMode: string;
+  };
 
   const normalizeWaterLevel = (value: number) =>
     Math.round((value / 1023) * 100);
@@ -123,7 +131,7 @@ export default function Index() {
   };
 
   // Simulate light intensity change
-  const adjustLightIntensity = async (value) => {
+  const adjustLightIntensity = async (value: number) => {
     setLightIntensity(value);
 
     try {
@@ -141,10 +149,10 @@ export default function Index() {
   };
 
   // Render custom slider component
-  const Slider = ({ value, onValueChange, disabled, lightMode }) => {
+  const Slider:React.FC<SliderProps> = ({ value, onValueChange, disabled, lightMode }) => {
     const [sliderValue, setSliderValue] = useState(value);
 
-    const handlePress = (event) => {
+    const handlePress = (event: GestureResponderEvent) => {
       if (disabled) return;
 
       // Get position relative to the slider
@@ -196,7 +204,10 @@ export default function Index() {
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView 
+      style={styles.container}
+      bounces={false}
+    >
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Plant Buddy</Text>
         <Text style={styles.subTitle}>Smart Plant Controller</Text>
